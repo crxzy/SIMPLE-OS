@@ -1,4 +1,4 @@
-#include "kernel/print.h"
+#include "lib/kernel/print.h"
 #include "init.h"
 
 int main() {
