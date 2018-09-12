@@ -6,8 +6,8 @@ CC = gcc
 CFLAGS = -m32 -c  -fno-builtin -fno-stack-protector -DDEBUG
 LD = ld
 LDFLAGS = -m elf_i386 -Ttext $(ENTRY_POINT) -e main
-LIB = -I lib/ -I lib/kernel/ -I kernel/ -I device/ -I thread/ -I lib/user/ -I userprog/ -I fs/ -I .
-OBJS = $(BUILD_DIR)/main.o
+LIB = -I kernel/ -I . -I lib/
+OBJS = $(BUILD_DIR)/main.o $(BUILD_DIR)/init.o  $(BUILD_DIR)/print.o
 
 default: dd
 
@@ -19,11 +19,12 @@ $(BUILD_DIR)/loader: boot/loader.asm
 	$(AS) -f bin $^ -o $@ -I boot/
 
 # kernel
-$(BUILD_DIR)/kernel.o: kernel/kernel.S
-	$(AS) -f elf $^ -o $@
-	
 $(BUILD_DIR)/main.o: kernel/main.c
 	$(CC) $(CFLAGS) $< -o $@ $(LIB)
+$(BUILD_DIR)/init.o: kernel/init.c kernel/init.h
+	$(CC) $(CFLAGS) $< -o $@ $(LIB)
+$(BUILD_DIR)/print.o: lib/kernel/print.asm
+	$(AS) -f elf $^ -o $@ -I boot/
 
 # img
 $(BUILD_DIR)/kernel.bin: $(OBJS)
