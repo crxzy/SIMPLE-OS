@@ -24,11 +24,11 @@ struct gate_desc {
 };
 
 // 中断门描述符数组
-static struct gate_desc idt[IDT_DESC_CNT]; 
+static struct gate_desc idt[IDT_DESC_CNT] = {0}; 
 // 异常的名字
 char *intr_name[IDT_DESC_CNT];         
 // 真正处理异常的函数
-intr_handler idt_table[IDT_DESC_CNT];      
+intr_handler idt_table[IDT_DESC_CNT] = {0};      
 // 中断处理函数入口数组
 extern intr_handler intr_entry_table[IDT_DESC_CNT]; 
 extern uint32_t syscall_handler();
@@ -46,12 +46,12 @@ static void make_idt_desc(struct gate_desc *p_gdesc, uint8_t attr,
 // 初始化中断描述符
 static void idt_desc_init() {
     int i;
-    for (i = 0; i < IDT_DESC_CNT; i++) {
+    for (i = 0; i < 0x30; i++) {
         make_idt_desc(&idt[i], IDT_DESC_ATTR_DPL0, intr_entry_table[i]);
     }
 
     // syscall
-    //make_idt_desc(&idt[0x80], IDT_DESC_ATTR_DPL3, syscall_handler);
+    make_idt_desc(&idt[0x80], IDT_DESC_ATTR_DPL3, syscall_handler);
     put_str("   idt_desc_init done\n");
 }
 
@@ -71,9 +71,12 @@ static void pic_init(void) {
     outb(PIC_S_DATA, 0x02); // ICW3: 设置从片连接到主片的IR2引脚
     outb(PIC_S_DATA, 0x01); // ICW4: 8086模式, 正常EOI
 
+/*
     outb(PIC_M_DATA, 0xf8);
     outb(PIC_S_DATA, 0xbf);
-
+*/
+    outb(PIC_M_DATA, 0x0);
+    outb(PIC_S_DATA, 0x0);
     /*
     //打开主片上IR0,也就是目前只接受时钟产生的中断
     outb(PIC_M_DATA, 0xfe);
@@ -81,8 +84,8 @@ static void pic_init(void) {
 
     /*
     //测试键盘,只打开键盘中断，其它全部关闭
-   outb (PIC_M_DATA, 0xfd);
-   outb (PIC_S_DATA, 0xff);*/
+    outb (PIC_M_DATA, 0xfd);
+    outb (PIC_S_DATA, 0xff);*/
 
     put_str("   pic_init done\n");
 }
