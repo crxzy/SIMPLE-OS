@@ -34,6 +34,8 @@ int main() {
     thread_start("keyboard", 30, thread1, NULL);
     process_execute(user_process, "pro1");
 
+    thread_block(TASK_BLOCKED);
+
     while(1);
     return 0;
 }

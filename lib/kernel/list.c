@@ -63,7 +63,6 @@ struct list_elem *list_traversal(struct list *plist, function func, int arg) {
     if (list_empty(plist)) {
         return NULL;
     }
-
     while (elem != &plist->tail) {
         if (func(elem, arg)) {
             return elem;

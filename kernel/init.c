@@ -7,6 +7,7 @@
 #include "device/keyboard.h"
 #include "userprog/tss.h"
 #include "userprog/syscall-init.h"
+#include "device/ide.h"
 
 void init_all() {
     // 初始化中断
@@ -20,4 +21,5 @@ void init_all() {
     keyboard_init(); //初始化键盘
     tss_init();
     syscall_init(); // 初始化系统调用
+    ide_init();
 }
