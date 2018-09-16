@@ -98,6 +98,6 @@ uint32_t printf(const char *format, ...) {
     va_end(args);
     //return write(1, buf, strlen(buf));
     //console_put_str(buf);
-    write(buf);
+    write(1, buf, strlen(buf));
     return 0;
 }

@@ -58,7 +58,7 @@ Ox01F3​～0x01F6：将28位扇区号分成4段分别写入这4个端口寄存�
 /* 定义可读写的最大扇区数,调试用的 */
 #define max_lba ((80 * 1024 * 1024 / 512) - 1) // 只支持80MB硬盘
 
-struct ide_channel channel;
+struct ide_channel channels;
 
 /* 用于记录总扩展分区的起始lba,初始为0,partition_scan时以此为标记 */
 int32_t ext_lba_base = 0;
@@ -265,11 +265,11 @@ void intr_hd_handler(uint8_t irq_no) {
         
         inb(reg_status(channel));
     }*/
-    ASSERT(irq_no == 0x2e && channel.irq_no == irq_no);
-    if(channel.expecting_intr) {
-        channel.expecting_intr = false;
-        sema_up(&(channel.disk_done));
-        inb(reg_status((&channel)));
+    ASSERT(irq_no == 0x2e && channels.irq_no == irq_no);
+    if(channels.expecting_intr) {
+        channels.expecting_intr = false;
+        sema_up(&(channels.disk_done));
+        inb(reg_status((&channels)));
     }
 
 }
@@ -392,17 +392,17 @@ void ide_init() {
 
     uint8_t dev_no = 0;
 
-    channel.port_base = 0x1f0;
-    channel.irq_no = 0x20 + 14;
-    channel.expecting_intr = false;
-    lock_init(&(channel.lock));
-    sema_init(&(channel.disk_done), 0);
-    register_handler(channel.irq_no, intr_hd_handler);
+    channels.port_base = 0x1f0;
+    channels.irq_no = 0x20 + 14;
+    channels.expecting_intr = false;
+    lock_init(&(channels.lock));
+    sema_init(&(channels.disk_done), 0);
+    register_handler(channels.irq_no, intr_hd_handler);
     list_init(&partition_list);
 
     while (dev_no < 2) {
-        struct disk *hd = &(channel.devices[dev_no]);
-        hd->my_channel = &channel;
+        struct disk *hd = &(channels.devices[dev_no]);
+        hd->my_channel = &channels;
         hd->dev_no = dev_no;
         sprintf(hd->name, "sd%c", 'a' + dev_no);
         if (!identify_disk(hd)) // 获取硬盘参数

@@ -39,7 +39,7 @@ struct ide_channel {
 };
 
 void ide_init(void);
-extern uint8_t channel_cnt;
+extern struct list partition_list;
 extern struct ide_channel channels;
 void intr_hd_handler(uint8_t irq_no);
 void ide_read(struct disk *hd, uint32_t lba, void *buf, uint32_t sec_cnt);

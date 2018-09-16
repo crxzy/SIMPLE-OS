@@ -11,7 +11,8 @@ OBJS = $(BUILD_DIR)/main.o $(BUILD_DIR)/init.o  $(BUILD_DIR)/print.o $(BUILD_DIR
 	$(BUILD_DIR)/timer.o  $(BUILD_DIR)/list.o  $(BUILD_DIR)/bitmap.o $(BUILD_DIR)/string.o $(BUILD_DIR)/debug.o\
 	$(BUILD_DIR)/memory.o $(BUILD_DIR)/thread.o $(BUILD_DIR)/sync.o $(BUILD_DIR)/switch.o $(BUILD_DIR)/tss.o\
 	$(BUILD_DIR)/process.o $(BUILD_DIR)/syscall.o $(BUILD_DIR)/syscall-init.o $(BUILD_DIR)/stdio.o $(BUILD_DIR)/stdio-kernel.o\
-	$(BUILD_DIR)/console.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/ioqueue.o $(BUILD_DIR)/ide.o
+	$(BUILD_DIR)/console.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/ioqueue.o $(BUILD_DIR)/ide.o $(BUILD_DIR)/fs.o \
+    $(BUILD_DIR)/inode.o $(BUILD_DIR)/file.o $(BUILD_DIR)/dir.o
 
 default: dd
 
@@ -72,6 +73,14 @@ $(BUILD_DIR)/keyboard.o: device/keyboard.c device/keyboard.h
 $(BUILD_DIR)/ioqueue.o: device/ioqueue.c device/ioqueue.h
 	$(CC) $(CFLAGS) $< -o $@ $(LIB)
 $(BUILD_DIR)/ide.o: device/ide.c device/ide.h
+	$(CC) $(CFLAGS) $< -o $@ $(LIB)
+$(BUILD_DIR)/fs.o: fs/fs.c fs/fs.h
+	$(CC) $(CFLAGS) $< -o $@ $(LIB)
+$(BUILD_DIR)/dir.o: fs/dir.c fs/dir.h
+	$(CC) $(CFLAGS) $< -o $@ $(LIB)
+$(BUILD_DIR)/inode.o: fs/inode.c fs/inode.h
+	$(CC) $(CFLAGS) $< -o $@ $(LIB)
+$(BUILD_DIR)/file.o: fs/file.c fs/file.h
 	$(CC) $(CFLAGS) $< -o $@ $(LIB)
 
 # img

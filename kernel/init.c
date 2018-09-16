@@ -8,6 +8,7 @@
 #include "userprog/tss.h"
 #include "userprog/syscall-init.h"
 #include "device/ide.h"
+#include "fs/fs.h"
 
 void init_all() {
     // 初始化中断
@@ -22,4 +23,5 @@ void init_all() {
     tss_init();
     syscall_init(); // 初始化系统调用
     ide_init();
+    filesys_init();   // 初始化文件系统
 }

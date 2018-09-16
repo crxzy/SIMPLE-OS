@@ -89,6 +89,7 @@ struct task_struct {
 
     // 文件描述符
     int32_t fd_table[MAX_FILES_OPEN_PER_PROC];
+    uint32_t cwd_inode_nr;	 // 进程所在的工作目录的inode编号
 
     uint32_t stack_magic; // 检测栈的溢出
 };
