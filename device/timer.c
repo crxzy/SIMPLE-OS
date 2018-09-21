@@ -1,8 +1,8 @@
 #include "timer.h"
-#include "lib/kernel/print.h"
-#include "lib/kernel/io.h"
+#include "print.h"
+#include "io.h"
 #include "interrupt.h"
-#include "thread/thread.h"
+#include "thread.h"
 #include "debug.h"
 
 #define IRQ0_FREQUENCY 1000

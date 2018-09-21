@@ -6,13 +6,14 @@ CC = gcc
 CFLAGS = -m32 -c  -fno-builtin -fno-stack-protector -DDEBUG
 LD = ld
 LDFLAGS = -m elf_i386 -Ttext $(ENTRY_POINT) -e main
-LIB = -I kernel/ -I .
+LIB = -I lib/ -I lib/kernel/ -I lib/user/ -I kernel/ -I device/ -I thread/ -I userprog/ -I fs/ -I shell/ -I .
 OBJS = $(BUILD_DIR)/main.o $(BUILD_DIR)/init.o  $(BUILD_DIR)/print.o $(BUILD_DIR)/kernel.o $(BUILD_DIR)/interrupt.o\
 	$(BUILD_DIR)/timer.o  $(BUILD_DIR)/list.o  $(BUILD_DIR)/bitmap.o $(BUILD_DIR)/string.o $(BUILD_DIR)/debug.o\
 	$(BUILD_DIR)/memory.o $(BUILD_DIR)/thread.o $(BUILD_DIR)/sync.o $(BUILD_DIR)/switch.o $(BUILD_DIR)/tss.o\
 	$(BUILD_DIR)/process.o $(BUILD_DIR)/syscall.o $(BUILD_DIR)/syscall-init.o $(BUILD_DIR)/stdio.o $(BUILD_DIR)/stdio-kernel.o\
 	$(BUILD_DIR)/console.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/ioqueue.o $(BUILD_DIR)/ide.o $(BUILD_DIR)/fs.o \
-    $(BUILD_DIR)/inode.o $(BUILD_DIR)/file.o $(BUILD_DIR)/dir.o
+    $(BUILD_DIR)/inode.o $(BUILD_DIR)/file.o $(BUILD_DIR)/dir.o\
+	$(BUILD_DIR)/fork.o $(BUILD_DIR)/shell.o $(BUILD_DIR)/buildin_cmd.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/exec.o
 
 default: dd
 
@@ -81,6 +82,16 @@ $(BUILD_DIR)/dir.o: fs/dir.c fs/dir.h
 $(BUILD_DIR)/inode.o: fs/inode.c fs/inode.h
 	$(CC) $(CFLAGS) $< -o $@ $(LIB)
 $(BUILD_DIR)/file.o: fs/file.c fs/file.h
+	$(CC) $(CFLAGS) $< -o $@ $(LIB)
+$(BUILD_DIR)/assert.o: lib/user/assert.c lib/user/assert.h
+	$(CC) $(CFLAGS) $< -o $@ $(LIB)
+$(BUILD_DIR)/fork.o: userprog/fork.c userprog/fork.h
+	$(CC) $(CFLAGS) $< -o $@ $(LIB)
+$(BUILD_DIR)/shell.o: shell/shell.c shell/shell.h 
+	$(CC) $(CFLAGS) $< -o $@ $(LIB)
+$(BUILD_DIR)/buildin_cmd.o: shell/buildin_cmd.c shell/buildin_cmd.h
+	$(CC) $(CFLAGS) $< -o $@ $(LIB)
+$(BUILD_DIR)/exec.o: userprog/exec.c userprog/exec.h
 	$(CC) $(CFLAGS) $< -o $@ $(LIB)
 
 # img

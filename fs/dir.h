@@ -1,9 +1,9 @@
 #ifndef __DIR_H__
 #define __DIR_H__
-#include "lib/stdint.h"
-#include "fs/inode.h"
+#include "stdint.h"
+#include "inode.h"
 #include "fs.h"
-#include "device/ide.h"
+#include "ide.h"
 #include "global.h"
 
 #define MAX_FILE_NAME_LEN  16	 // 最大文件名长度

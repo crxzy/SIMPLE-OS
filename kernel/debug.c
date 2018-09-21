@@ -1,6 +1,6 @@
 #include "debug.h"
 #include "interrupt.h"
-#include "lib/kernel/print.h"
+#include "print.h"
 
 /* 打印文件名,行号,函数名,并进入死循环 */
 void panic_spin(char *filename, int line, const char *func,

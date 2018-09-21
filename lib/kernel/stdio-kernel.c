@@ -1,8 +1,8 @@
 #include "stdio-kernel.h"
-#include "device/console.h"
+#include "console.h"
 #include "global.h"
-#include "lib/kernel/print.h"
-#include "lib/stdio.h"
+#include "print.h"
+#include "stdio.h"
 
 #define va_start(args, first_fix) args = (va_list)&first_fix
 #define va_end(args) args = NULL

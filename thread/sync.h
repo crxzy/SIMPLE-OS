@@ -1,6 +1,6 @@
 #ifndef __THREAD_SYNC_H
 #define __THREAD_SYNC_H
-#include "lib/kernel/list.h"
+#include "list.h"
 #include "stdint.h"
 #include "thread.h"
 

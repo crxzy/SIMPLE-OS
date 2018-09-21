@@ -1,7 +1,7 @@
 #include "interrupt.h"
 #include "global.h"
-#include "lib/kernel/print.h"
-#include "lib/kernel/io.h"
+#include "print.h"
+#include "io.h"
 
 // 8259A终端控制器
 #define PIC_M_CTRL 0x20 // 主片控制端口0x20
@@ -99,7 +99,6 @@ static void general_intr_handler(uint8_t vec_nr) {
     /*
     if (vec_nr == 0xd) {
         asm ("nop");
-        /*
             2018年8月17日02点31分
             莫名发生#GP异常
             经调试发现ERROR CODE为0X13B

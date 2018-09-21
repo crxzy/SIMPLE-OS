@@ -1,8 +1,8 @@
 #ifndef __FILE_H__
 #define __FILE_H__
-#include "lib/stdint.h"
+#include "stdint.h"
 #include "device/ide.h"
-#include "fs/dir.h"
+#include "dir.h"
 #include "global.h"
 
 /* 文件结构 */

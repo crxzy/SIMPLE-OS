@@ -1,10 +1,12 @@
-#ifndef __THREAD_THREAD_H
-#define __THREAD_THREAD_H
-#include "lib/kernel/list.h"
+#ifndef __THREAD_H
+#define __THREAD_H
+#include "list.h"
 #include "memory.h"
 #include "stdint.h"
 
 #define MAX_FILES_OPEN_PER_PROC 8
+
+#define TASK_NAME_LEN 16
 
 typedef void thread_func(void *);
 typedef int16_t pid_t;
@@ -90,7 +92,7 @@ struct task_struct {
     // 文件描述符
     int32_t fd_table[MAX_FILES_OPEN_PER_PROC];
     uint32_t cwd_inode_nr;	 // 进程所在的工作目录的inode编号
-
+    int16_t parent_pid;
     uint32_t stack_magic; // 检测栈的溢出
 };
 
@@ -108,4 +110,6 @@ void thread_init(void);
 void thread_block(enum task_status stat);
 void thread_unblock(struct task_struct *pthread);
 void thread_yield(void);
+pid_t fork_pid();
+void sys_ps(void);
 #endif

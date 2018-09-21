@@ -1,14 +1,14 @@
 #include "file.h"
 #include "debug.h"
-#include "fs/fs.h"
-#include "fs/inode.h"
-#include "fs/super_block.h"
+#include "fs.h"
+#include "inode.h"
+#include "super_block.h"
 #include "global.h"
 #include "interrupt.h"
-#include "lib/kernel/stdio-kernel.h"
-#include "lib/string.h"
+#include "stdio-kernel.h"
+#include "string.h"
 #include "memory.h"
-#include "thread/thread.h"
+#include "thread.h"
 
 #define DEFAULT_SECS 1
 

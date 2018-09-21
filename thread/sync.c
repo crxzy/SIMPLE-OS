@@ -3,8 +3,8 @@
 #include "global.h"
 #include "i386/cmpxchg.h"
 #include "interrupt.h"
-#include "lib/kernel/list.h"
-#include "lib/kernel/print.h"
+#include "list.h"
+#include "print.h"
 
 // 初始化信号量 
 void sema_init(struct semaphore *psema, uint8_t value) {

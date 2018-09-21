@@ -1,11 +1,11 @@
 #include "ide.h"
 #include "debug.h"
-#include "device/timer.h"
+#include "timer.h"
 #include "interrupt.h"
-#include "lib/kernel/io.h"
-#include "lib/kernel/stdio-kernel.h"
-#include "lib/stdio.h"
-#include "lib/string.h"
+#include "io.h"
+#include "stdio-kernel.h"
+#include "stdio.h"
+#include "string.h"
 #include "memory.h"
 #include "thread/sync.h"
 
@@ -392,6 +392,8 @@ void ide_init() {
 
     uint8_t dev_no = 0;
 
+    memset(&channels, 0, sizeof(channels));
+
     channels.port_base = 0x1f0;
     channels.irq_no = 0x20 + 14;
     channels.expecting_intr = false;
@@ -408,7 +410,7 @@ void ide_init() {
         if (!identify_disk(hd)) // 获取硬盘参数
         {
             // 硬盘可能不存在
-            hd->dev_no = -1;
+            hd->dev_no = 0xff;
             dev_no++;
             continue;
         }

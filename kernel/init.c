@@ -1,14 +1,14 @@
 #include "init.h"
 #include "interrupt.h"
-#include "device/timer.h"
+#include "timer.h"
 #include "memory.h"
-#include "thread/thread.h"
-#include "device/console.h"
-#include "device/keyboard.h"
-#include "userprog/tss.h"
-#include "userprog/syscall-init.h"
-#include "device/ide.h"
-#include "fs/fs.h"
+#include "thread.h"
+#include "console.h"
+#include "keyboard.h"
+#include "tss.h"
+#include "syscall-init.h"
+#include "ide.h"
+#include "fs.h"
 
 void init_all() {
     // 初始化中断

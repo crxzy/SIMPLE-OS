@@ -1,8 +1,8 @@
 #ifndef __INODE_H__
 #define __INODE_H__
-#include "device/ide.h"
-#include "lib/kernel/list.h"
-#include "lib/stdint.h"
+#include "ide.h"
+#include "list.h"
+#include "stdint.h"
 
 // inode结构
 struct inode {

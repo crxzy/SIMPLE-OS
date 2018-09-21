@@ -76,6 +76,7 @@ uint32_t vsprintf(char *str, const char *format, va_list ap) {
             break;
         }
     }
+    *buf_ptr = 0;
     return strlen(str);
 }
 

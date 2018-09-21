@@ -1,8 +1,8 @@
 #ifndef __MEMORY_H__
 #define __MEMORY_H__
 #include "stdint.h"
-#include "lib/kernel/bitmap.h"
-#include "lib/kernel/list.h"
+#include "bitmap.h"
+#include "list.h"
 
 enum pool_flags {
    PF_KERNEL = 1,    // 内核内存池
@@ -49,4 +49,6 @@ void* get_user_pages(uint32_t pg_cnt);
 void block_desc_init(struct mem_block_desc* desc_array);
 void *sys_malloc(uint32_t size);
 void sys_free(void *ptr);
+void *get_a_page_without_opvaddrbitmap(enum pool_flags pf, uint32_t vaddr);
+void mfree_page(enum pool_flags pf, void *_vaddr, uint32_t pg_cnt);
 #endif

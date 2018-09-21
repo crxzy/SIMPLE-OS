@@ -1,8 +1,8 @@
 #ifndef __DEVICE_IDE_H
 #define __DEVICE_IDE_H
 #include "lib/kernel/bitmap.h"
-#include "lib/stdint.h"
-#include "thread/sync.h"
+#include "stdint.h"
+#include "sync.h"
 
 /* 分区结构 */
 struct partition {

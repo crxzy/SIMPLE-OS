@@ -1,14 +1,14 @@
 #include "inode.h"
 #include "debug.h"
-#include "fs/file.h"
-#include "fs/fs.h"
+#include "file.h"
+#include "fs.h"
 #include "global.h"
 #include "interrupt.h"
-#include "lib/kernel/list.h"
-#include "lib/kernel/stdio-kernel.h"
-#include "lib/string.h"
+#include "list.h"
+#include "stdio-kernel.h"
+#include "string.h"
 #include "memory.h"
-#include "fs/super_block.h"
+#include "super_block.h"
 
 // 用来存储inode位置
 struct inode_position {

@@ -1,9 +1,9 @@
 #include "keyboard.h"
 #include "global.h"
 #include "interrupt.h"
-#include "lib/kernel/io.h"
+#include "io.h"
 #include "ioqueue.h"
-#include "lib/kernel/print.h"
+#include "print.h"
 
 #define KBD_BUF_PORT 0x60 // 键盘buffer寄存器端口号为0x60
 

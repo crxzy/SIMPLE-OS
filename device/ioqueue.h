@@ -1,8 +1,8 @@
 #ifndef __IOQUEUE_H__
 #define __IOQUEUE_H__
-#include "lib/stdint.h"
-#include "thread/sync.h"
-#include "thread/thread.h"
+#include "stdint.h"
+#include "sync.h"
+#include "thread.h"
 
 #define bufsize 64
 
