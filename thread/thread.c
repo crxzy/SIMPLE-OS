@@ -1,24 +1,34 @@
 #include "thread.h"
 #include "debug.h"
+#include "file.h"
 #include "global.h"
 #include "interrupt.h"
-#include "print.h"
-#include "string.h"
 #include "memory.h"
-#include "stdint.h"
-#include "sync.h"
+#include "print.h"
 #include "process.h"
-#include "file.h"
+#include "stdint.h"
 #include "stdio.h"
+#include "string.h"
+#include "sync.h"
 
 #define PG_SIZE 4096
+
+/* pid的位图,最大支持1024个pid */
+uint8_t pid_bitmap_bits[128] = {0};
+
+/* pid池 */
+struct pid_pool {
+    struct bitmap pid_bitmap; // pid位图
+    uint32_t pid_start;       // 起始pid
+    struct lock pid_lock;     // 分配pid锁
+} pid_pool;
 
 struct task_struct *main_thread;     // 主线程PCB
 struct list thread_ready_list;       // 就绪队列
 struct list thread_all_list;         // 所有任务队列
 static struct list_elem *thread_tag; // 用于保存队列中的线程结点
-struct lock pid_lock;                // 分配pid锁
-struct task_struct *idle_thread;     // idle线程
+// struct lock pid_lock;                // 分配pid锁
+struct task_struct *idle_thread; // idle线程
 
 extern void switch_to(struct task_struct *cur, struct task_struct *next);
 
@@ -75,16 +85,86 @@ void thread_create(struct task_struct *pthread, thread_func function,
         kthread_stack->edi = 0;
 }
 
+/* 初始化pid池 */
+static void pid_pool_init(void) {
+    pid_pool.pid_start = 1;
+    pid_pool.pid_bitmap.bits = pid_bitmap_bits;
+    pid_pool.pid_bitmap.btmp_bytes_len = 128;
+    bitmap_init(&pid_pool.pid_bitmap);
+    lock_init(&pid_pool.pid_lock);
+}
+
 // 分配pid
 static pid_t allocate_pid(void) {
-    static pid_t next_pid = 0;
-    lock_acquire(&pid_lock);
-    next_pid++;
-    lock_release(&pid_lock);
-    return next_pid;
+    lock_acquire(&pid_pool.pid_lock);
+    int32_t bit_idx = bitmap_scan(&pid_pool.pid_bitmap, 1);
+    bitmap_set(&pid_pool.pid_bitmap, bit_idx, 1);
+    lock_release(&pid_pool.pid_lock);
+    return (bit_idx + pid_pool.pid_start);
+}
+
+// 释放pid
+void release_pid(pid_t pid) {
+    lock_acquire(&pid_pool.pid_lock);
+    int32_t bit_idx = pid - pid_pool.pid_start;
+    bitmap_set(&pid_pool.pid_bitmap, bit_idx, 0);
+    lock_release(&pid_pool.pid_lock);
 }
 
 pid_t fork_pid() { return allocate_pid(); }
+
+/* 回收thread_over的pcb和页表,并将其从调度队列中去除 */
+void thread_exit(struct task_struct *thread_over, bool need_schedule) {
+    /* 要保证schedule在关中断情况下调用 */
+    intr_disable();
+    thread_over->status = TASK_DIED;
+
+    /* 如果thread_over不是当前线程,就有可能还在就绪队列中,将其从中删除 */
+    if (elem_find(&thread_ready_list, &thread_over->general_tag)) {
+        list_remove(&thread_over->general_tag);
+    }
+    if (thread_over->pgdir) { // 如是进程,回收进程的页表
+        mfree_page(PF_KERNEL, thread_over->pgdir, 1);
+    }
+
+    /* 从all_thread_list中去掉此任务 */
+    list_remove(&thread_over->all_list_tag);
+
+    /* 回收pcb所在的页,主线程的pcb不在堆中,跨过 */
+    if (thread_over != main_thread) {
+        mfree_page(PF_KERNEL, thread_over, 1);
+    }
+
+    /* 归还pid */
+    release_pid(thread_over->pid);
+
+    /* 如果需要下一轮调度则主动调用schedule */
+    if (need_schedule) {
+        schedule();
+        PANIC("thread_exit: should not be here\n");
+    }
+}
+
+/* 比对任务的pid */
+static bool pid_check(struct list_elem *pelem, int32_t pid) {
+    struct task_struct *pthread =
+        elem2entry(struct task_struct, all_list_tag, pelem);
+    if (pthread->pid == pid) {
+        return true;
+    }
+    return false;
+}
+
+/* 根据pid找pcb,若找到则返回该pcb,否则返回NULL */
+struct task_struct *pid2thread(int32_t pid) {
+    struct list_elem *pelem = list_traversal(&thread_all_list, pid_check, pid);
+    if (pelem == NULL) {
+        return NULL;
+    }
+    struct task_struct *thread =
+        elem2entry(struct task_struct, all_list_tag, pelem);
+    return thread;
+}
 
 // 初始化线程基本信息
 void init_thread(struct task_struct *pthread, char *name, int prio) {
@@ -283,7 +363,8 @@ void thread_init(void) {
     put_str("thread_init start\n");
     list_init(&thread_ready_list);
     list_init(&thread_all_list);
-    lock_init(&pid_lock);
+    //lock_init(&pid_lock);
+    pid_pool_init();
 
     process_execute(init, "init"); // init进程的pid为1
     make_main_thread();

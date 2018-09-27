@@ -93,6 +93,7 @@ struct task_struct {
     int32_t fd_table[MAX_FILES_OPEN_PER_PROC];
     uint32_t cwd_inode_nr;	 // 进程所在的工作目录的inode编号
     int16_t parent_pid;
+    int32_t exit_status;
     uint32_t stack_magic; // 检测栈的溢出
 };
 
@@ -112,4 +113,7 @@ void thread_unblock(struct task_struct *pthread);
 void thread_yield(void);
 pid_t fork_pid();
 void sys_ps(void);
+void thread_exit(struct task_struct* thread_over, bool need_schedule);
+struct task_struct* pid2thread(int32_t pid);
+void release_pid(pid_t pid);
 #endif

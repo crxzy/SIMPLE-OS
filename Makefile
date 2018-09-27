@@ -13,7 +13,8 @@ OBJS = $(BUILD_DIR)/main.o $(BUILD_DIR)/init.o  $(BUILD_DIR)/print.o $(BUILD_DIR
 	$(BUILD_DIR)/process.o $(BUILD_DIR)/syscall.o $(BUILD_DIR)/syscall-init.o $(BUILD_DIR)/stdio.o $(BUILD_DIR)/stdio-kernel.o\
 	$(BUILD_DIR)/console.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/ioqueue.o $(BUILD_DIR)/ide.o $(BUILD_DIR)/fs.o \
     $(BUILD_DIR)/inode.o $(BUILD_DIR)/file.o $(BUILD_DIR)/dir.o\
-	$(BUILD_DIR)/fork.o $(BUILD_DIR)/shell.o $(BUILD_DIR)/buildin_cmd.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/exec.o
+	$(BUILD_DIR)/fork.o $(BUILD_DIR)/shell.o $(BUILD_DIR)/buildin_cmd.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/exec.o\
+	$(BUILD_DIR)/wait_exit.o $(BUILD_DIR)/pipe.o
 
 default: dd
 
@@ -93,7 +94,11 @@ $(BUILD_DIR)/buildin_cmd.o: shell/buildin_cmd.c shell/buildin_cmd.h
 	$(CC) $(CFLAGS) $< -o $@ $(LIB)
 $(BUILD_DIR)/exec.o: userprog/exec.c userprog/exec.h
 	$(CC) $(CFLAGS) $< -o $@ $(LIB)
-
+$(BUILD_DIR)/wait_exit.o: userprog/wait_exit.c userprog/wait_exit.h
+	$(CC) $(CFLAGS) $< -o $@ $(LIB)
+$(BUILD_DIR)/pipe.o: shell/pipe.c shell/pipe.h
+	$(CC) $(CFLAGS) $< -o $@ $(LIB)
+	
 # img
 $(BUILD_DIR)/kernel.bin: $(OBJS)
 	$(LD) $(LDFLAGS) $^ -o $@

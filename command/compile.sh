@@ -11,28 +11,23 @@ if [[ ! -d "../lib" || ! -d "../build" ]];then
    exit
 fi
 
-BIN="prog_no_arg"
-CFLAGS="-Wall -c -fno-builtin -W -Wstrict-prototypes \
-      -Wmissing-prototypes -Wsystem-headers -m32"
-LIB="../lib/"
+BIN="cat"
+CFLAGS="-m32 -c -fno-builtin -fno-stack-protector"
+LIBS="-I ../lib/ -I ../lib/kernel/ -I ../lib/user/ -I \
+      ../kernel/ -I ../device/ -I ../thread/ -I \
+      ../userprog/ -I ../fs/ -I ../shell/ -I ../."
 OBJS="../build/string.o ../build/syscall.o \
-      ../build/stdio.o ../build/assert.o"
+      ../build/stdio.o ../build/assert.o start.o"
 DD_IN=$BIN
-DD_OUT="/home/xzy/code/OS/TINYOS/hd80M.img" 
+DD_OUT="/home/xzy/code/graduate/TINYOS/hd80m.img" 
 
-gcc $CFLAGS -I $LIB -o $BIN".o" $BIN".c"
-ld -m elf_i386 -e main $BIN".o" $OBJS -o $BIN
+nasm -f elf ./start.S -o ./start.o
+ar rcs simple_crt.a $OBJS start.o
+gcc $CFLAGS $LIBS -o $BIN".o" $BIN".c"
+ld -e _start -m elf_i386 $BIN".o" simple_crt.a -o $BIN
 SEC_CNT=$(ls -l $BIN|awk '{printf("%d", ($5+511)/512)}')
 
 if [[ -f $BIN ]];then
    dd if=./$DD_IN of=$DD_OUT bs=512 \
    count=$SEC_CNT seek=300 conv=notrunc
 fi
-
-##########   以上核心就是下面这三条命令   ##########
-#gcc -Wall -c -fno-builtin -W -Wstrict-prototypes -Wmissing-prototypes \
-#   -Wsystem-headers -I ../lib -o prog_no_arg.o prog_no_arg.c
-#ld -e main prog_no_arg.o ../build/string.o ../build/syscall.o\
-#   ../build/stdio.o ../build/assert.o -o prog_no_arg
-#dd if=prog_no_arg of=$DD_OUT \
-#   bs=512 count=10 seek=300 conv=notrunc

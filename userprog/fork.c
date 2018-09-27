@@ -2,17 +2,18 @@
 #include "debug.h"
 #include "fs/file.h"
 #include "interrupt.h"
-#include "memory.h"
-#include "userprog/process.h"
-#include "lib/string.h"
-#include "thread/thread.h"
 #include "lib/kernel/list.h"
+#include "lib/string.h"
+#include "memory.h"
+#include "thread/thread.h"
+#include "userprog/process.h"
+#include "pipe.h"
 
 extern void intr_exit(void);
 
 /* 将父进程的pcb、虚拟地址位图拷贝给子进程 */
 int32_t copy_pcb_vaddrbitmap_stack0(struct task_struct *child_thread,
-                                           struct task_struct *parent_thread) {
+                                    struct task_struct *parent_thread) {
     /* a
      * 复制pcb所在的整个页,里面包含进程pcb信息及特级0极的栈,里面包含了返回地址,
      * 然后再单独修改个别部分 */
@@ -38,7 +39,8 @@ int32_t copy_pcb_vaddrbitmap_stack0(struct task_struct *child_thread,
     // }
 
     /* b 复制父进程的虚拟地址池的位图 */
-    uint32_t bitmap_pg_cnt = DIV_ROUND_UP((0xc0000000 - USER_VADDR_START) / PG_SIZE / 8, PG_SIZE);
+    uint32_t bitmap_pg_cnt =
+        DIV_ROUND_UP((0xc0000000 - USER_VADDR_START) / PG_SIZE / 8, PG_SIZE);
     void *vaddr_btmp = get_kernel_pages(bitmap_pg_cnt);
     if (vaddr_btmp == NULL)
         return -1;
@@ -49,7 +51,8 @@ int32_t copy_pcb_vaddrbitmap_stack0(struct task_struct *child_thread,
            bitmap_pg_cnt * PG_SIZE);
     child_thread->userprog_vaddr.vaddr_bitmap.bits = vaddr_btmp;
     /* 调试用 */
-    ASSERT(strlen(child_thread->name) < 11); // pcb.name的长度是16,为避免下面strcat越界
+    ASSERT(strlen(child_thread->name) <
+           11); // pcb.name的长度是16,为避免下面strcat越界
     strcat(child_thread->name, "_fork");
     return 0;
 }
@@ -72,7 +75,8 @@ static void copy_body_stack3(struct task_struct *child_thread,
             idx_bit = 0;
             while (idx_bit < 8) {
                 if ((BITMAP_MASK << idx_bit) & vaddr_btmp[idx_byte]) {
-                    prog_vaddr = (idx_byte * 8 + idx_bit) * PG_SIZE + vaddr_start;
+                    prog_vaddr =
+                        (idx_byte * 8 + idx_bit) * PG_SIZE + vaddr_start;
                     /* 下面的操作是将父进程用户空间中的数据通过内核空间做中转,最终复制到子进程的用户空间
                      */
 
@@ -98,6 +102,41 @@ static void copy_body_stack3(struct task_struct *child_thread,
         }
         idx_byte++;
     }
+
+    ///////////////////////////////////////////////////////////////////////////
+    // for (int i = 0; i < DESC_CNT; ++i) {
+    //     struct mem_block_desc *desc = &(parent_thread->u_block_desc[i]);
+    //     struct list_elem *l = desc->free_list.tail.prev;
+    //     struct list_elem *f = desc->free_list.head.next;
+
+    //     // while(l != &(desc->free_list.tail)) {
+    //     //     printk("%x->", l);
+    //     //     list_append(&(child_thread->u_block_desc[i].free_list), l);
+    //     //     l = l->next;
+    //     // }
+    //     if (list_empty(&(desc->free_list))) {
+    //         page_dir_activate(child_thread);
+    //         list_init(&(child_thread->u_block_desc[i].free_list));
+    //         page_dir_activate(parent_thread);
+    //     } else {
+    //         page_dir_activate(child_thread);
+    //         l->next = &(child_thread->u_block_desc[i].free_list.tail);
+    //         child_thread->u_block_desc[i].free_list.tail.prev = l;
+
+    //         f->prev = &(child_thread->u_block_desc[i].free_list.head);
+
+    //         // l = desc->free_list.head.next;
+    //         // while (l != &(child_thread->u_block_desc[i].free_list.tail)) {
+    //         //     printk("%x->", l);
+    //         //     //list_append(&(child_thread->u_block_desc[i].free_list),
+    //         l);
+    //         //     l = l->next;
+    //         // }
+    //         // printk("\n");
+
+    //         page_dir_activate(parent_thread);
+    //     }
+    // }
 }
 
 /* 为子进程构建thread_stack和修改返回值 */
@@ -145,7 +184,11 @@ static void update_inode_open_cnts(struct task_struct *thread) {
         global_fd = thread->fd_table[local_fd];
         ASSERT(global_fd < MAX_FILE_OPEN);
         if (global_fd != -1) {
-            file_table[global_fd].fd_inode->i_open_cnts++;
+            if (is_pipe(local_fd)) {
+                file_table[global_fd].fd_pos++;
+            } else {
+                file_table[global_fd].fd_inode->i_open_cnts++;
+            }
         }
         local_fd++;
     }

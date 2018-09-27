@@ -1,19 +1,20 @@
 #include "fs.h"
-#include "debug.h"
 #include "console.h"
-#include "ide.h"
-#include "ioqueue.h"
-#include "keyboard.h"
+#include "debug.h"
 #include "dir.h"
 #include "file.h"
-#include "inode.h"
-#include "super_block.h"
 #include "global.h"
+#include "ide.h"
+#include "inode.h"
+#include "ioqueue.h"
+#include "keyboard.h"
 #include "list.h"
-#include "stdio-kernel.h"
-#include "stdint.h"
-#include "string.h"
 #include "memory.h"
+#include "pipe.h"
+#include "stdint.h"
+#include "stdio-kernel.h"
+#include "string.h"
+#include "super_block.h"
 
 struct partition *cur_part; // 默认情况下操作的是哪个分区
 
@@ -384,12 +385,13 @@ int32_t sys_open(const char *pathname, uint8_t flags) {
         return -1;
     }
 
+    dir_close(searched_record.parent_dir);
+
     switch (flags & O_CREAT) {
     case O_CREAT:
         printk("creating file\n");
         fd = file_create(searched_record.parent_dir,
                          (strrchr(pathname, '/') + 1), flags);
-        dir_close(searched_record.parent_dir);
         break;
     default:
         /* 其余情况均为打开已存在文件:
@@ -403,7 +405,7 @@ int32_t sys_open(const char *pathname, uint8_t flags) {
 }
 
 /* 将文件描述符转化为文件表的下标 */
-static uint32_t fd_local2global(uint32_t local_fd) {
+uint32_t fd_local2global(uint32_t local_fd) {
     struct task_struct *cur = running_thread();
     int32_t global_fd = cur->fd_table[local_fd];
     ASSERT(global_fd >= 0 && global_fd < MAX_FILE_OPEN);
@@ -414,8 +416,17 @@ static uint32_t fd_local2global(uint32_t local_fd) {
 int32_t sys_close(int32_t fd) {
     int32_t ret = -1; // 返回值默认为-1,即失败
     if (fd > 2) {
-        uint32_t _fd = fd_local2global(fd);
-        ret = file_close(&file_table[_fd]);
+        uint32_t global_fd = fd_local2global(fd);
+        if (is_pipe(fd)) {
+            /* 如果此管道上的描述符都被关闭,释放管道的环形缓冲区 */
+            if (--file_table[global_fd].fd_pos == 0) {
+                mfree_page(PF_KERNEL, file_table[global_fd].fd_inode, 1);
+                file_table[global_fd].fd_inode = NULL;
+            }
+            ret = 0;
+        } else {
+            ret = file_close(&file_table[global_fd]);
+        }
         running_thread()->fd_table[fd] = -1; // 使该文件描述符位可用
     }
     return ret;
@@ -430,21 +441,26 @@ int32_t sys_write(int32_t fd, const void *buf, uint32_t count) {
         printk("sys_write: fd error\n");
         return -1;
     }
-    if (fd == stdout_no) {
-        char tmp_buf[1024] = {0};
-        memcpy(tmp_buf, buf, count);
-        console_put_str(tmp_buf);
-        return count;
+    if (is_pipe(fd)) { /* 若是管道就调用管道的方法 */
+        return pipe_write(fd, buf, count);
     } else {
-        uint32_t _fd = fd_local2global(fd);
-        struct file *wr_file = &file_table[_fd];
-        if (wr_file->fd_flag & O_WRONLY || wr_file->fd_flag & O_RDWR) {
-            uint32_t bytes_written = file_write(wr_file, buf, count);
-            return bytes_written;
+        if (fd == stdout_no) {
+            char tmp_buf[1024] = {0};
+            memcpy(tmp_buf, buf, count);
+            console_put_str(tmp_buf);
+            return count;
         } else {
-            console_put_str("sys_write: not allowed to write file without flag "
-                            "O_RDWR or O_WRONLY\n");
-            return -1;
+            uint32_t _fd = fd_local2global(fd);
+            struct file *wr_file = &file_table[_fd];
+            if (wr_file->fd_flag & O_WRONLY || wr_file->fd_flag & O_RDWR) {
+                uint32_t bytes_written = file_write(wr_file, buf, count);
+                return bytes_written;
+            } else {
+                console_put_str(
+                    "sys_write: not allowed to write file without flag "
+                    "O_RDWR or O_WRONLY\n");
+                return -1;
+            }
         }
     }
 }
@@ -457,18 +473,24 @@ int32_t sys_read(int32_t fd, void *buf, uint32_t count) {
     uint32_t global_fd = 0;
     if (fd < 0 || fd == stdout_no || fd == stderr_no) {
         printk("sys_read: fd error\n");
-    } else if (fd == stdin_no) {
-        char *buffer = buf;
-        uint32_t bytes_read = 0;
-        while (bytes_read < count) {
-            *buffer = ioq_getchar(&kbd_buf);
-            bytes_read++;
-            buffer++;
-        }
-        ret = (bytes_read == 0 ? -1 : (int32_t)bytes_read);
+    }
+    if (is_pipe(fd)) { /* 若是管道就调用管道的方法 */
+        ret = pipe_read(fd, buf, count);
     } else {
-        global_fd = fd_local2global(fd);
-        ret = file_read(&file_table[global_fd], buf, count);
+        if (fd == stdin_no) {
+            char *buffer = buf;
+            uint32_t bytes_read = 0;
+            while (bytes_read < count) {
+                *buffer = ioq_getchar(&kbd_buf);
+                bytes_read++;
+                buffer++;
+            }
+            ret = (bytes_read == 0 ? -1 : (int32_t)bytes_read);
+        } else {
+
+            global_fd = fd_local2global(fd);
+            ret = file_read(&file_table[global_fd], buf, count);
+        }
     }
     return ret;
 }
@@ -521,8 +543,8 @@ int32_t sys_unlink(const char *pathname) {
         return -1;
     }
     if (searched_record.file_type == FT_DIRECTORY) {
-        printk(
-            "can`t delete a direcotry with unlink(), use rmdir() to instead\n");
+        printk("can`t delete a direcotry with unlink(), use rmdir() to "
+               "instead\n");
         dir_close(searched_record.parent_dir);
         return -1;
     }
@@ -722,7 +744,8 @@ int32_t sys_closedir(struct dir *dir) {
     return ret;
 }
 
-/* 读取目录dir的1个目录项,成功后返回其目录项地址,到目录尾时或出错时返回NULL */
+/* 读取目录dir的1个目录项,成功后返回其目录项地址,到目录尾时或出错时返回NULL
+ */
 struct dir_entry *sys_readdir(struct dir *dir) {
     ASSERT(dir != NULL);
     return dir_read(dir);
@@ -954,10 +977,12 @@ void filesys_init() {
             if (part->sec_cnt != 0) { // 如果分区存在
                 memset(sb_buf, 0, SECTOR_SIZE);
 
-                /* 读出分区的超级块,根据魔数是否正确来判断是否存在文件系统 */
+                /* 读出分区的超级块,根据魔数是否正确来判断是否存在文件系统
+                 */
                 ide_read(hd, part->start_lba + 1, sb_buf, 1);
 
-                /* 只支持自己的文件系统.若磁盘上已经有文件系统就不再格式化了 */
+                /* 只支持自己的文件系统.若磁盘上已经有文件系统就不再格式化了
+                 */
                 if (sb_buf->magic == 0x19970119) {
                     printk("%s has filesystem\n", part->name);
                 } else { // 其它文件系统不支持,一律按无文件系统处理

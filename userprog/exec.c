@@ -163,12 +163,15 @@ int32_t sys_execv(const char *path, const char *argv[]) {
     while (argv[argc]) {
         argc++;
     }
+    struct task_struct *cur = running_thread();
+    //block_desc_init(cur->u_block_desc);
+
     int32_t entry_point = load(path);
     if (entry_point == -1) { // 若加载失败则返回-1
         return -1;
     }
 
-    struct task_struct *cur = running_thread();
+    
     /* 修改进程名 */
     memcpy(cur->name, path, TASK_NAME_LEN);
 

@@ -347,7 +347,7 @@ void *sys_malloc(uint32_t size) {
     if (!(size > 0 && size < pool_size)) {
         return NULL;
     }
-    struct arena *a;
+    struct arena *a = NULL;
     struct mem_block *b;
     lock_acquire(&mem_pool->lock);
 
@@ -393,7 +393,10 @@ void *sys_malloc(uint32_t size) {
 
             /* 对于分配的小块内存,将desc置为相应内存块描述符,
              * cnt置为此arena可用的内存块数,large置为false */
+            // struct mem_block_desc *mbd = &descs[desc_idx];
+            // printk("m block %x\n", mbd);
             a->desc = &descs[desc_idx];
+            //printk("new %x\n", a->desc);
             a->large = false;
             a->cnt = descs[desc_idx].blocks_per_arena;
             uint32_t block_idx;
@@ -408,6 +411,7 @@ void *sys_malloc(uint32_t size) {
                 list_append(&a->desc->free_list, &b->free_elem);
             }
             intr_set_status(old_status);
+            // printk("new");
         }
 
         /* 开始分配内存块 */
@@ -418,6 +422,7 @@ void *sys_malloc(uint32_t size) {
         a = block2arena(b); // 获取内存块b所在的arena
         a->cnt--;           // 将此arena中的空闲内存块数减1
         lock_release(&mem_pool->lock);
+        // printk(" ptr:%x\n", b);
         return (void *)b;
     }
 }
@@ -520,6 +525,7 @@ void mfree_page(enum pool_flags pf, void *_vaddr, uint32_t pg_cnt) {
 /* 回收内存ptr */
 void sys_free(void *ptr) {
     ASSERT(ptr != NULL);
+    //printk(" free %x\n", ptr);
     if (ptr != NULL) {
         enum pool_flags PF;
         struct pool *mem_pool;
@@ -543,6 +549,8 @@ void sys_free(void *ptr) {
             mfree_page(PF, a, a->cnt);
         } else { // 小于等于1024的内存块
 
+            //printk("%x %x\n", a, a->desc);
+
             // if (ptr < 0xc0000000) {
             //     int idx = 0;
             //     int bs = a->desc->block_size;
@@ -551,28 +559,60 @@ void sys_free(void *ptr) {
             //         idx++;
             //         bs = bs >> 1;
             //     }
-            //     struct mem_block_desc *desc = &(running_thread()->u_block_desc[idx]);
+            //     struct mem_block_desc *desc =
+            //         &(running_thread()->u_block_desc[idx]);
+
+            //     //printk("a->desc:%x desc:%x\n", a->desc, desc);
 
             //     if (desc != a->desc) {
-            //         if(a->desc->free_list.head.next == &(a->desc->free_list.tail)) {
+            //         a->desc = desc;
+            //     }
+            // }
+
+            // if (ptr < 0xc0000000) {
+            //     int idx = 0;
+            //     int bs = a->desc->block_size;
+            //     bs = bs >> 4;
+            //     while (bs != 1) {
+            //         idx++;
+            //         bs = bs >> 1;
+            //     }
+            //     struct mem_block_desc *desc =
+            //     &(running_thread()->u_block_desc[idx]);
+
+            //     if (desc != a->desc) {
+            //         if(a->desc->free_list.head.next ==
+            //         &(a->desc->free_list.tail)) {
             //             list_init(&(desc->free_list));
             //         } else {
-            //             a->desc->free_list.tail.prev->next = &(desc->free_list.tail);
+            //             a->desc->free_list.tail.prev->next =
+            //             &(desc->free_list.tail);
             //         }
 
             //         struct list_elem *l;
-            //         printk("free:%x area->desc:%x cur_thread:%x, desc:%x\n", ptr, a->desc, running_thread(), desc);
-            //         for (l = desc->free_list.head.next; l != &(desc->free_list.tail);) {
-            //             struct mem_block *m = elem2entry(struct mem_block, free_elem, l);
-            //             printk("%x->", m);
-            //             l = l->next;
+            //         printk("free:%x area->desc:%x cur_thread:%x, desc:%x\n",
+            //         ptr, a->desc, running_thread(), desc); for (l =
+            //         desc->free_list.head.next; l != &(desc->free_list.tail);)
+            //         {
+            //             struct mem_block *m = elem2entry(struct mem_block,
+            //             free_elem, l); printk("%x->", m); l = l->next;
             //         }
             //         printk("\n");
             //     }
             // }
 
+            //printk("free list: %x\n", &a->desc->free_list);
             /* 先将内存块回收到free_list */
             list_push(&a->desc->free_list, &b->free_elem);
+
+            // struct list_elem *l = a->desc->free_list.head.next;
+            // printk("sys_free after push:");
+            // while (l != &(a->desc->free_list.tail)) {
+            //     printk("%x->", l);
+            //     // list_append(&(child_thread->u_block_desc[i].free_list),
+            //     l); l = l->next;
+            // }
+            // printk("\n");
 
             /* 再判断此arena中的内存块是否都是空闲,如果是就释放arena */
             if (++a->cnt == a->desc->blocks_per_arena) {
@@ -588,6 +628,20 @@ void sys_free(void *ptr) {
         }
         lock_release(&mem_pool->lock);
     }
+}
+
+/* 根据物理页框地址pg_phy_addr在相应的内存池的位图清0,不改动页表*/
+void free_a_phy_page(uint32_t pg_phy_addr) {
+   struct pool* mem_pool;
+   uint32_t bit_idx = 0;
+   if (pg_phy_addr >= user_pool.phy_addr_start) {
+      mem_pool = &user_pool;
+      bit_idx = (pg_phy_addr - user_pool.phy_addr_start) / PG_SIZE;
+   } else {
+      mem_pool = &kernel_pool;
+      bit_idx = (pg_phy_addr - kernel_pool.phy_addr_start) / PG_SIZE;
+   }
+   bitmap_set(&mem_pool->pool_bitmap, bit_idx, 0);
 }
 
 /* 内存管理部分初始化 */

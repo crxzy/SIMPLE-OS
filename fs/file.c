@@ -435,11 +435,14 @@ int32_t file_read(struct file *file, void *buf, uint32_t count) {
     if (io_buf == NULL) {
         printk("file_read: sys_malloc for io_buf failed\n");
     }
-    uint32_t *all_blocks = (uint32_t *)sys_malloc(BLOCK_SIZE + 48); // 用来记录文件所有的块地址
+    //uint32_t *all_blocks = (uint32_t *)sys_malloc(BLOCK_SIZE + 48); // 用来记录文件所有的块地址
+    uint32_t *all_blocks = (uint32_t *)sys_malloc(4096*2);
     if (all_blocks == NULL) {
         printk("file_read: sys_malloc for all_blocks failed\n");
         return -1;
     }
+
+    //printf("sys_Read: io buf:%x all_blocks:%x\n", io_buf, all_blocks);
 
     uint32_t block_read_start_idx = file->fd_pos / BLOCK_SIZE; // 数据所在块的起始地址
     uint32_t block_read_end_idx = (file->fd_pos + size) / BLOCK_SIZE; // 数据所在块的终止地址
@@ -505,6 +508,7 @@ int32_t file_read(struct file *file, void *buf, uint32_t count) {
         memset(io_buf, 0, BLOCK_SIZE);
         ide_read(cur_part->my_disk, sec_lba, io_buf, 1);
         memcpy(buf_dst, io_buf + sec_off_bytes, chunk_size);
+        //printf("io_buf %x iobuf + sec_off_bytes %x, chunk_size:%d\n", io_buf, io_buf + sec_off_bytes, chunk_size);
 
         buf_dst += chunk_size;
         file->fd_pos += chunk_size;
