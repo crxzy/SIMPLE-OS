@@ -39,7 +39,8 @@ void sys_help() {
        reboot: reboot\n\
  shortcut key:\n\
        ctrl+l: clear screen\n\
-       ctrl+u: clear input\n\n");
+       ctrl+u: clear input\n\
+       ctrl+c: abort\n\n");
 }
 
 /* 初始化系统调用 */
