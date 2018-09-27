@@ -133,16 +133,19 @@ static void cmd_execute(uint32_t argc, char **argv) {
         buildin_rmdir(argc, argv);
     } else if (!strcmp("rm", argv[0])) {
         buildin_rm(argc, argv);
+    } else if (!strcmp("help", argv[0])) {
+        buildin_help();
+    } else if (!strcmp("reboot", argv[0])) {
+        buildin_reboot();
     } else {
         pid_t pid = fork();
         if (pid) {
             int32_t status;
-            int32_t child_pid = wait(
-                &status); // 此时子进程若没有执行exit,my_shell会被阻塞,不再响应键入的命令
+            int32_t child_pid = wait(&status); // 此时子进程若没有执行exit,my_shell会被阻塞,不再响应键入的命令
             if (child_pid == -1) {
                 panic("my_shell: no child\n");
             }
-            //printf("child_pid %d, it's status: %d\n", child_pid, status);
+            // printf("child_pid %d, it's status: %d\n", child_pid, status);
         } else {
             // 子进程
             make_clear_abs_path(argv[0], final_path);
@@ -190,7 +193,6 @@ void my_shell(void) {
 
             fd_redirect(1, fd[1]);
 
-
             /*2 第一个命令 */
             char *each_cmd = cmd_line;
             pipe_symbol = strchr(each_cmd, '|');
@@ -200,7 +202,6 @@ void my_shell(void) {
             argc = -1;
             argc = cmd_parse(each_cmd, argv, ' ');
             cmd_execute(argc, argv);
-
 
             /* 跨过'|',处理下一个命令 */
             each_cmd = pipe_symbol + 1;

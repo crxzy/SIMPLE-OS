@@ -14,6 +14,7 @@
 #include "stdint.h"
 #include "stdio-kernel.h"
 #include "string.h"
+#include "wait_exit.h"
 #include "super_block.h"
 
 struct partition *cur_part; // 默认情况下操作的是哪个分区
@@ -482,6 +483,9 @@ int32_t sys_read(int32_t fd, void *buf, uint32_t count) {
             uint32_t bytes_read = 0;
             while (bytes_read < count) {
                 *buffer = ioq_getchar(&kbd_buf);
+                if(*buffer == ('c' - 'a')) {
+                    sys_exit(-1);
+                }
                 bytes_read++;
                 buffer++;
             }

@@ -4,6 +4,7 @@
 #include "io.h"
 #include "ioqueue.h"
 #include "print.h"
+#include "wait_exit.h"
 
 #define KBD_BUF_PORT 0x60 // 键盘buffer寄存器端口号为0x60
 
@@ -198,6 +199,14 @@ static void intr_keyboard_handler(void) {
 
         /* 只处理ascii码不为0的键 */
         if (cur_char) {
+            if ((ctrl_down_last && cur_char == 'l') ||
+                (ctrl_down_last && cur_char == 'u')) {
+                cur_char -= 'a';
+            }
+
+            if(ctrl_down_last && cur_char == 'c') {
+                cur_char -= 'a';
+            }
             // put_char(cur_char);
             if (!ioq_full(&kbd_buf)) {
                 // put_char(cur_char);

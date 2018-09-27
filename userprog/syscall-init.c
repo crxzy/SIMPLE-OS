@@ -7,10 +7,12 @@
 #include "lib/string.h"
 #include "lib/user/syscall.h"
 #include "memory.h"
+#include "pipe.h"
 #include "thread/thread.h"
 #include "userprog/fork.h"
 #include "wait_exit.h"
-#include "pipe.h"
+#include "stdio-kernel.h"
+#include "io.h"
 
 #define syscall_nr 32
 typedef void *syscall;
@@ -18,6 +20,27 @@ syscall syscall_table[syscall_nr];
 
 /* 返回当前任务的pid */
 uint32_t sys_getpid(void) { return running_thread()->pid; }
+
+void sys_reboot() {
+    outb(0x64, 0xfe);
+}
+
+void sys_help() {
+    printk("\
+ buildin commands:\n\
+       ls: show directory or file information\n\
+       cd: change current work directory\n\
+       mkdir: create a directory\n\
+       rmdir: remove a empty directory\n\
+       rm: remove a regular file\n\
+       pwd: show current work directory\n\
+       ps: show process information\n\
+       clear: clear screen\n\
+       reboot: reboot\n\
+ shortcut key:\n\
+       ctrl+l: clear screen\n\
+       ctrl+u: clear input\n\n");
+}
 
 /* 初始化系统调用 */
 void syscall_init(void) {
@@ -49,5 +72,7 @@ void syscall_init(void) {
     syscall_table[SYS_EXIT] = sys_exit;
     syscall_table[SYS_PIPE] = sys_pipe;
     syscall_table[SYS_FD_REDIRECT] = sys_fd_redirect;
+    syscall_table[SYS_HELP] = sys_help;
+    syscall_table[SYS_REBOOT] = sys_reboot;
     put_str("syscall_init done\n");
 }

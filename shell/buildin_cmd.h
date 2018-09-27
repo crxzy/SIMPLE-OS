@@ -10,4 +10,6 @@ void make_clear_abs_path(char* path, char* wash_buf);
 void buildin_pwd(uint32_t argc, char** argv);
 void buildin_ps(uint32_t argc, char** argv);
 void buildin_clear(uint32_t argc, char** argv);
+void buildin_help();
+void buildin_reboot();
 #endif
